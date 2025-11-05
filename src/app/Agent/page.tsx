@@ -936,6 +936,7 @@ const Agent: React.FC = () => {
                   Try After some time or adjusting your search or filters to find trading signals
                 </div>
               </div>
+              
             )}
           </div>
         )}
