@@ -31,11 +31,11 @@ export function NavBar({ items, className }: { items: NavItem[]; className?: str
         <div className="flex items-center gap-16">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 cursor-pointer">
-            <Image 
-              src="/ElaraFiLogo.png" 
-              alt="ElaraFi Logo" 
-              width={32} 
-              height={32} 
+            <Image
+              src="/ElaraFiLogo.png"
+              alt="ElaraFi Logo"
+              width={32}
+              height={32}
               className="rounded-full object-cover"
             />
             <span className="text-white text-xl font-semibold">ElaraFi</span>
@@ -64,7 +64,7 @@ export function NavBar({ items, className }: { items: NavItem[]; className?: str
 
         {/* Right: Wallet + Icons */}
         <div className="flex items-center gap-2">
-          
+
 
           {/* Wallet Button - purple style */}
           {mounted && (
@@ -82,7 +82,7 @@ export function NavBar({ items, className }: { items: NavItem[]; className?: str
             <button className="flex relative bg-[#2a1a3a] hover:bg-[#3a2450] rounded-lg p-[9px] cursor-pointer w-[42px] h-[42px] items-center justify-center">
               <Bell className="w-5 h-5 text-white" />
             </button>
-            
+
             {/* Globe/Language Icon */}
             <button className="flex relative bg-[#2a1a3a] hover:bg-[#3a2450] rounded-lg p-[9px] cursor-pointer w-[42px] h-[42px] items-center justify-center">
               <Globe className="w-5 h-5" style={{ color: '#A855F7' }} />
@@ -97,12 +97,12 @@ export function NavBar({ items, className }: { items: NavItem[]; className?: str
             <Menu className="h-5 w-5 text-white" />
           </button>
         </div>
-        
+
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="absolute top-full left-0 right-0 backdrop-blur-xl bg-black/40 supports-[backdrop-filter]:bg-black/40 border-t border-white/10 shadow-lg min-[1140px]:hidden">
+        <div className="absolute top-full left-0 right-0 backdrop-blur-xl bg-black border-t border-white/10 shadow-lg min-[1140px]:hidden">
           <div className="px-4 py-3">
             {items.map((item: NavItem) => {
               const isActive = pathname === item.url;
