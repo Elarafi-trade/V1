@@ -31,6 +31,7 @@ interface ApiTradeData {
   volatility: string
   halfLife: string
   sharpe: string
+
 }
 
 interface SignalData {
@@ -157,6 +158,7 @@ interface DailySignal {
   zScore?: string
   correlation?: string
   cointegration?: string
+  cointegrationPValue?: string
   halfLife?: string
   volatility?: string
   sharpe?: string
@@ -168,6 +170,11 @@ interface DailySignal {
   entryRecommendation?: string
   timeAgo?: string
   timestamp?: Date
+  dataPoints?: number
+  currentSpread?: string
+  mean?: string
+  std?: string
+  signalType?: string
 }
 
 const Agent: React.FC = () => {
@@ -420,22 +427,36 @@ const Agent: React.FC = () => {
     const transform = (a: string, b: string, raw: any): DailySignal => {
       const token1 = { symbol: a, ...getTokenStyle(a) }
       const token2 = { symbol: b, ...getTokenStyle(b) }
+
+      // Extract metrics from nested structure
+      const metrics = raw?.metrics ?? {}
+
       // Try to read common metric names with safe fallbacks
-      const z = raw?.zScore ?? raw?.zscore ?? raw?.metrics?.zScore ?? raw?.stats?.zScore
-      const corr = raw?.correlation ?? raw?.metrics?.correlation ?? raw?.metrics?.corr ?? raw?.stats?.correlation
-      const hl = raw?.halfLife ?? raw?.halfLifeDays ?? raw?.metrics?.halfLife
-      const integ = raw?.cointegration ?? (raw?.isCointegrated != null ? (raw.isCointegrated ? 'Yes' : 'No') : undefined)
-      const vol = raw?.volatility ?? raw?.metrics?.volatility
-      const sh = raw?.sharpe ?? raw?.metrics?.sharpe
-      const bta = raw?.beta ?? raw?.metrics?.beta
+      const z = metrics?.zScore ?? raw?.zScore ?? raw?.zscore
+      const corr = metrics?.corr ?? metrics?.correlation ?? raw?.correlation
+      const hl = metrics?.halfLife ?? raw?.halfLife ?? raw?.halfLifeDays
+      const integBool = metrics?.isCointegrated ?? raw?.isCointegrated
+      const integPValue = metrics?.cointegrationPValue ?? raw?.cointegrationPValue
+      const integ = raw?.cointegration ?? (integBool != null ? (integBool ? 'Yes' : 'No') : undefined)
+      const vol = metrics?.volatility ?? raw?.volatility
+      const sh = metrics?.sharpe ?? raw?.sharpe
+      const bta = metrics?.beta ?? raw?.beta
+      const dataPoints = metrics?.dataPoints ?? raw?.dataPoints
+      const currentSpread = metrics?.currentSpread ?? raw?.currentSpread
+      const spreadMean = metrics?.mean ?? raw?.mean ?? raw?.spreadMean
+      const spreadStd = metrics?.std ?? raw?.std ?? raw?.spreadStd
+      const sigType = metrics?.signalType ?? raw?.signalType
+
+      // Extract analysis fields
       const rsn = raw?.reason ?? raw?.explanation ?? raw?.analysis?.reasoning
       const analysis = raw?.analysis ?? {}
       const sig = analysis?.signal
       const conf = analysis?.confidence
       const risk = analysis?.risk_level ?? analysis?.riskLevel
       const entryRec = analysis?.entry_recommendation ?? analysis?.entryRecommendation
-  const updatedRaw = raw?.cached_at ?? raw?.updatedAt ?? raw?.timestamp ?? Date.now()
-  const updatedDate = toValidDate(updatedRaw) ?? new Date()
+      const updatedRaw = raw?.cached_at ?? raw?.updatedAt ?? raw?.timestamp ?? Date.now()
+      const updatedDate = toValidDate(updatedRaw) ?? new Date()
+
 
       return {
         id: `${a}-${b}`,
@@ -444,10 +465,16 @@ const Agent: React.FC = () => {
         zScore: z != null ? String(z) : undefined,
         correlation: corr != null ? String(corr) : undefined,
         cointegration: integ != null ? String(integ) : undefined,
+        cointegrationPValue: integPValue != null ? String(integPValue) : undefined,
         halfLife: hl != null ? String(hl) : undefined,
         volatility: vol != null ? String(vol) : undefined,
         sharpe: sh != null ? String(sh) : undefined,
         beta: bta != null ? String(bta) : undefined,
+        dataPoints: dataPoints != null ? Number(dataPoints) : undefined,
+        currentSpread: currentSpread != null ? String(currentSpread) : undefined,
+        mean: spreadMean != null ? String(spreadMean) : undefined,
+        std: spreadStd != null ? String(spreadStd) : undefined,
+        signalType: sigType != null ? String(sigType) : undefined,
         reason: rsn != null ? String(rsn) : undefined,
         signal: sig != null ? String(sig) : undefined,
         confidence: conf != null ? String(conf) : undefined,
@@ -704,9 +731,14 @@ const Agent: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 pb-16">
         {/* Error State */}
         {error && (
-          <div className="text-center py-16">
-            <div className="text-red-500 text-lg mb-2">Error loading signals</div>
-            <div className="text-gray-600 text-sm">{error}</div>
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <div className="w-20 h-20 mb-6 bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-2xl flex items-center justify-center border border-red-500/30">
+              <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="text-red-400 text-xl font-semibold mb-2">Error loading signals</div>
+            <div className="text-gray-500 text-sm text-center max-w-md">{error}</div>
           </div>
         )}
 
@@ -755,121 +787,180 @@ const Agent: React.FC = () => {
 
         {/* Signals List: Live / History */}
         {!loading && !error && activeTab !== 'top' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredSignals.map((signal) => (
               <div
                 key={signal.id}
-                className="group w-full bg-black/40 backdrop-blur-sm cursor-pointer rounded-xl flex flex-col p-6 gap-3 border border-gray-800/50 hover:border-purple-600/30 transition-all"
+                className="group w-full bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-md rounded-2xl flex flex-col p-5 gap-4 border border-gray-800/50 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-row justify-between items-center w-full">
                     {/* Token badges */}
-                    <div className="flex flex-row items-center flex-shrink-0">
-                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-2 sm:px-4 py-2 bg-green-500/20 rounded-l-lg">
+                    <div className="flex flex-row items-center flex-shrink-0 shadow-md">
+                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-green-500/30 to-green-600/20 rounded-l-xl border border-green-500/30 hover:from-green-500/40 hover:to-green-600/30 transition-all">
                         <div
-                          className={`w-3 h-3 sm:w-4 sm:h-4 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-[8px] sm:text-[10px]`}
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}
                         >
                           {signal.token1.icon}
                         </div>
-                        <p className="text-xs font-bold text-white">{signal.token1.symbol}</p>
+                        <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token1.symbol}</p>
                       </div>
-                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-2 sm:px-4 py-2 bg-red-500/20 rounded-r-lg">
+                      <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-600 to-transparent"></div>
+                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-red-600/20 to-red-500/30 rounded-r-xl border border-red-500/30 hover:from-red-600/30 hover:to-red-500/40 transition-all">
                         <div
-                          className={`w-3 h-3 sm:w-4 sm:h-4 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-[8px] sm:text-[10px]`}
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}
                         >
                           {signal.token2.icon}
                         </div>
-                        <p className="text-xs font-bold text-white">{signal.token2.symbol}</p>
+                        <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token2.symbol}</p>
                       </div>
                     </div>
 
-                    {/* Time */}
-                    <span className="text-xs font-bold text-white text-right ml-2">{signal.timeAgo}</span>
+                    {/* Time with icon */}
+                    <div className="flex items-center gap-1.5 bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/30">
+                      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-xs font-semibold text-gray-300">{signal.timeAgo}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Metrics Container */}
-                <div className="w-full flex flex-col p-2 bg-black/50 rounded-lg gap-2 border border-gray-700/30">
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Signal:</span>
-                    <span className="text-xs font-bold">{renderSignalDisplay(signal.signal, signal.token1, signal.token2)}</span>
+                <div className="w-full flex flex-col p-4 bg-gradient-to-br from-gray-900/80 to-black/50 rounded-xl gap-2.5 border border-gray-700/40 shadow-inner">
+                  {/* Signal - Featured */}
+                  <div className="w-full flex flex-row justify-between items-center pb-2 border-b border-gray-700/30">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Signal</span>
+                    <span className="text-sm font-bold">{renderSignalDisplay(signal.signal, signal.token1, signal.token2)}</span>
                   </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Price:</span>
-                    <span className="text-xs font-bold text-white">{signal.price}</span>
+
+                  {/* Performance - Featured */}
+                  <div className="w-full flex flex-row justify-between items-center pb-2 border-b border-gray-700/30">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Performance</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-bold ${parseFloat(signal.performance) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {signal.performance}
+                      </span>
+                      {parseFloat(signal.performance) >= 0 ? (
+                        <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Entry Price:</span>
-                    <span className="text-xs font-bold text-white">{signal.entryPrice}</span>
+
+                  {/* Grid for other metrics */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Price</span>
+                      <span className="text-xs font-bold text-white">{signal.price}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Entry</span>
+                      <span className="text-xs font-bold text-white">{signal.entryPrice}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Correlation</span>
+                      <span className="text-xs font-bold text-white">{signal.correlation}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Z-Score</span>
+                      <span className="text-xs font-bold text-white">{signal.rollingZScore}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Volatility</span>
+                      <span className="text-xs font-bold text-white">{signal.volatility}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Spread</span>
+                      <span className="text-xs font-bold text-white">{signal.spread}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Co-integration</span>
+                      <span className="text-xs font-bold text-green-400">{signal.cointegration}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Timeframe</span>
+                      <span className="text-xs font-bold text-purple-400">1hr</span>
+                    </div>
                   </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Performance:</span>
-                    <span className={`text-xs font-bold ${parseFloat(signal.performance) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {signal.performance}
+
+                  {/* Trading Engine Badge */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-700/30">
+                    <span className="text-xs font-medium text-gray-500 uppercase">Trading Engine</span>
+                    <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs font-bold text-purple-400">
+                      {signal.tradingEngine}
                     </span>
                   </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Correlation:</span>
-                    <span className="text-xs font-bold text-white">{signal.correlation}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Z-Score:</span>
-                    <span className="text-xs font-bold text-white">{signal.rollingZScore}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Half-Life:</span>
-                    <span className="text-xs font-bold text-white">{signal.halfLife}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Co-integration:</span>
-                    <span className="text-xs font-bold text-white">{signal.cointegration}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Trading Engine:</span>
-                    <span className="text-xs font-bold text-purple-400">{signal.tradingEngine}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs font-medium text-[#A0A0A0]">Open Reason:</span>
-                    <div className="mt-1 p-2 bg-gray-800/30 rounded-lg">{signal.reason}</div>
+
+                  {/* Open Reason - Collapsible */}
+                  <div className="pt-2 border-t border-gray-700/30">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Open Reason</span>
+                    <div className="p-3 bg-gradient-to-br from-gray-800/60 to-black/40 rounded-lg border border-gray-700/30 text-xs text-gray-300 leading-relaxed">
+                      {signal.reason}
+                    </div>
                   </div>
                 </div>
 
                 {/* Action Button */}
                 <button
                   onClick={() => handleOpenPosition(signal)}
-                  className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-xs hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-purple-500/50 cursor-pointer"
+                  className="group/btn w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 text-white font-bold text-sm hover:from-purple-500 hover:via-purple-600 hover:to-purple-500 transition-all duration-300 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/50 cursor-pointer relative overflow-hidden"
                 >
-                  Open Position
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Open Position
+                    <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
                 </button>
               </div>
             ))}
 
             {/* Empty State */}
             {filteredSignals.length === 0 && (
-              <div className="text-center py-16">
-                <div className="text-gray-500 text-lg mb-2">No signals found</div>
-                <div className="text-gray-600 text-sm">Try adjusting your search or filters</div>
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-20 h-20 mb-6 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                  <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div className="text-gray-300 text-xl font-semibold mb-2">No Active signals found</div>
+                <div className="text-gray-500 text-sm text-center max-w-md">
+                  Try After some time or adjusting your search or filters to find trading signals
+                </div>
               </div>
+              
             )}
           </div>
         )}
 
         {/* Top Daily Signals */}
         {activeTab === 'top' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Error State */}
             {dailyError && (
-              <div className="text-center py-16">
-                <div className="text-red-500 text-lg mb-2">Error loading daily signals</div>
-                <div className="text-gray-600 text-sm">{dailyError}</div>
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-20 h-20 mb-6 bg-gradient-to-br from-red-500/20 to-red-600/10 rounded-2xl flex items-center justify-center border border-red-500/30">
+                  <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="text-red-400 text-xl font-semibold mb-2">Error loading daily signals</div>
+                <div className="text-gray-500 text-sm text-center max-w-md">{dailyError}</div>
               </div>
             )}
 
             {/* Loading Skeleton */}
             {dailyLoading && !dailyError && (
               <div className="space-y-3">
-                {[1,2,3].map((i) => (
+                {[1, 2, 3].map((i) => (
                   <div key={i} className="w-full bg-black/40 backdrop-blur-sm rounded-xl flex flex-col p-6 gap-3 border border-gray-800/50 animate-pulse">
                     <div className="flex flex-row justify-between items-center w-full">
                       <div className="flex flex-row items-center max-w-[180px]">
@@ -885,7 +976,7 @@ const Agent: React.FC = () => {
                       <div className="h-3 w-20 bg-gray-700 rounded" />
                     </div>
                     <div className="w-full flex flex-col p-2 bg-[#0F110F] rounded-lg gap-2">
-                      {[1,2,3,4,5,6,7,8].map((j) => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((j) => (
                         <div key={j} className="w-full flex flex-row justify-between">
                           <div className="h-3 w-24 bg-gray-700 rounded" />
                           <div className="h-3 w-16 bg-gray-700 rounded" />
@@ -901,108 +992,188 @@ const Agent: React.FC = () => {
             {!dailyLoading && !dailyError && dailySignals.map((signal) => (
               <div
                 key={signal.id}
-                className="group w-full bg-black/40 backdrop-blur-sm cursor-pointer rounded-xl flex flex-col p-6 gap-3 border border-gray-800/50 hover:border-purple-600/30 transition-all"
+                className="group w-full bg-gradient-to-br from-black/60 via-black/40 to-black/60 backdrop-blur-md rounded-2xl flex flex-col p-5 gap-4 border border-gray-800/50 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300"
               >
                 {/* Header */}
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-row justify-between items-center w-full">
-                    <div className="flex flex-row items-center flex-shrink-0">
-                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-2 sm:px-4 py-2 bg-green-500/20 rounded-l-lg">
-                        <div className={`w-3 h-3 sm:w-4 sm:h-4 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-[8px] sm:text-[10px]`}>
+                    <div className="flex flex-row items-center flex-shrink-0 shadow-md">
+                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-green-500/30 to-green-600/20 rounded-l-xl border border-green-500/30 hover:from-green-500/40 hover:to-green-600/30 transition-all">
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}>
                           {signal.token1.icon}
                         </div>
-                        <p className="text-xs font-bold text-white">{signal.token1.symbol}</p>
+                        <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token1.symbol}</p>
                       </div>
-                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-2 sm:px-4 py-2 bg-red-500/20 rounded-r-lg">
-                        <div className={`w-3 h-3 sm:w-4 sm:h-4 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-[8px] sm:text-[10px]`}>
+                      <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-600 to-transparent"></div>
+                      <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-red-600/20 to-red-500/30 rounded-r-xl border border-red-500/30 hover:from-red-600/30 hover:to-red-500/40 transition-all">
+                        <div className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}>
                           {signal.token2.icon}
                         </div>
-                        <p className="text-xs font-bold text-white">{signal.token2.symbol}</p>
+                        <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token2.symbol}</p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-white text-right ml-2">
-                      {(() => {
-                        const d = toValidDate(signal.cached_at) || (signal.timestamp instanceof Date ? signal.timestamp : null)
-                        return d ? getTimeAgo(d.toISOString()) : (signal.timeAgo || '')
-                      })()}
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/30">
+                      <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-xs font-semibold text-gray-300">
+                        {(() => {
+                          const d = toValidDate(signal.cached_at) || (signal.timestamp instanceof Date ? signal.timestamp : null)
+                          return d ? getTimeAgo(d.toISOString()) : (signal.timeAgo || '')
+                        })()}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Metrics */}
-                <div className="w-full flex flex-col p-2 bg-black/50 rounded-lg gap-2 border border-gray-700/30">
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Signal:</span>
-                    <span className="text-xs font-bold">{renderSignalDisplay(signal.signal, signal.token1, signal.token2)}</span>
-                  </div>
-                  <div>
-                    <div className="w-full flex flex-row justify-between">
-                      <span className="text-xs font-medium text-[#A0A0A0]">AI Reasoning model:</span>
-                      <span className="text-xs font-bold text-white">Qwen3 Max</span>
+                <div className="w-full flex flex-col p-4 bg-gradient-to-br from-gray-900/80 to-black/50 rounded-xl gap-3 border border-gray-700/40 shadow-inner">
+                  {/* Signal & AI Model - Featured */}
+                  <div className="flex flex-col gap-2 pb-3 border-b border-gray-700/30">
+                    <div className="w-full flex flex-row justify-between items-center">
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Signal</span>
+                      <span className="text-sm font-bold">{renderSignalDisplay(signal.signal, signal.token1, signal.token2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        AI Model
+                      </span>
+                      <span className="text-xs font-bold text-purple-400">Qwen3 Max</span>
                     </div>
                   </div>
 
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Confidence:</span>
-                    <span className={`text-xs font-bold ${getConfidenceClass(signal.confidence)}`}>
-                      {signal.confidence != null ? (() => {
-                        const v = parseFloat(signal.confidence)
-                        if (isNaN(v)) return signal.confidence
-                        const pct = v <= 1 ? v * 100 : v
-                        return `${pct.toFixed(0)}%`
-                      })() : 'N/A'}
+                  {/* Confidence & Risk - Highlighted */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-2 bg-gradient-to-br from-green-500/10 to-green-600/5 p-3 rounded-lg border border-green-500/20">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase">Confidence</span>
+                      </div>
+                      <span className={`text-lg font-bold ${getConfidenceClass(signal.confidence)}`}>
+                        {signal.confidence != null ? (() => {
+                          const v = parseFloat(signal.confidence)
+                          if (isNaN(v)) return signal.confidence
+                          const pct = v <= 1 ? v * 100 : v
+                          return `${pct.toFixed(0)}%`
+                        })() : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2 bg-gradient-to-br from-red-500/10 to-red-600/5 p-3 rounded-lg border border-red-500/20">
+                      <div className="flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span className="text-[10px] font-semibold text-gray-400 uppercase">Risk</span>
+                      </div>
+                      <span className={`text-lg font-bold ${getRiskClass(signal.riskLevel)}`}>{signal.riskLevel ?? 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  {/* Technical Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Z-Score</span>
+                      <span className="text-xs font-bold text-white">{signal.zScore ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Correlation</span>
+                      <span className="text-xs font-bold text-white">{signal.correlation ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Spread</span>
+                      <span className={`text-xs font-bold ${signal.currentSpread != null && parseFloat(signal.currentSpread) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {signal.currentSpread != null ? parseFloat(signal.currentSpread).toFixed(2) : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Volatility</span>
+                      <span className="text-xs font-bold text-white">
+                        {signal.volatility != null ? `${parseFloat(signal.volatility).toFixed(2)}%` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Beta</span>
+                      <span className="text-xs font-bold text-white">{signal.beta ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 bg-black/30 p-2.5 rounded-lg">
+                      <span className="text-[10px] font-medium text-gray-500 uppercase">Timeframe</span>
+                      <span className="text-xs font-bold text-purple-400">1hr</span>
+                    </div>
+                  </div>
+
+                  {/* Co-integration Status */}
+                  <div className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-gray-700/30">
+                    <span className="text-xs font-medium text-gray-400 uppercase">Co-integration</span>
+                    <span className={`text-xs font-bold flex items-center gap-2 ${signal.cointegration === 'Yes' ? 'text-green-400' : signal.cointegration === 'No' ? 'text-red-400' : 'text-white'}`}>
+                      {signal.cointegration === 'Yes' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      {signal.cointegration === 'No' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      )}
+                      <span>
+                        {signal.cointegration ?? 'Unknown'}
+                        {signal.cointegrationPValue && ` (p=${parseFloat(signal.cointegrationPValue).toFixed(2)})`}
+                      </span>
                     </span>
                   </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Risk:</span>
-                    <span className={`text-xs font-bold ${getRiskClass(signal.riskLevel)}`}>{signal.riskLevel ?? 'N/A'}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Z-Score:</span>
-                    <span className="text-xs font-bold text-white">{signal.zScore ?? 'N/A'}</span>
-                  </div>
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Correlation:</span>
-                    <span className="text-xs font-bold text-white">{signal.correlation ?? 'N/A'}</span>
-                  </div>
-                  {/* <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Half-Life:</span>
-                    <span className="text-xs font-bold text-white">{signal.halfLife ?? 'N/A'}</span>
-                  </div> */}
-                  {/* <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Co-integration:</span>
-                    <span className="text-xs font-bold text-white">{signal.cointegration ?? 'Unknown'}</span>
-                  </div> */}
-                  {/* <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Volatility:</span>
-                    <span className="text-xs font-bold text-white">{signal.volatility ?? 'N/A'}</span>
-                  </div> */}
-                  {/* <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Sharpe:</span>
-                    <span className="text-xs font-bold text-white">{signal.sharpe ?? 'N/A'}</span>
-                  </div> */}
-                  <div className="w-full flex flex-row justify-between">
-                    <span className="text-xs font-medium text-[#A0A0A0]">Beta:</span>
-                    <span className="text-xs font-bold text-white">{signal.beta ?? 'N/A'}</span>
-                  </div>
+
+                  {/* Entry Recommendation */}
                   {signal.entryRecommendation && (
-                    <div>
-                      <span className="text-xs font-medium text-[#A0A0A0]">Entry Recommendation:</span>
-                      <div className="mt-1 p-2 bg-gray-800/30 rounded-lg">{signal.entryRecommendation}</div>
+                    <div className="pt-3 border-t border-gray-700/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Entry Recommendation</span>
+                      </div>
+                      <div className="p-3 bg-gradient-to-br from-purple-900/20 to-purple-800/10 rounded-lg border border-purple-500/20 text-xs text-gray-300 leading-relaxed">
+                        {signal.entryRecommendation}
+                      </div>
                     </div>
                   )}
+
+                  {/* AI Reasoning - Collapsible */}
                   {signal.reason && (
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#A0A0A0]">Reason:</span>
+                    <div className="pt-3 border-t border-gray-700/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Reasoning</span>
+                        </div>
                         <button
                           onClick={() => setExpandedReason((prev) => ({ ...prev, [signal.id]: !prev[signal.id] }))}
-                          className="text-[10px] sm:text-xs text-purple-400 hover:text-purple-300 font-semibold cursor-pointer"
+                          className="flex items-center gap-1 text-[10px] sm:text-xs text-purple-400 hover:text-purple-300 font-semibold cursor-pointer transition-colors"
                         >
-                          {expandedReason[signal.id] ? 'Show less' : 'Show more'}
+                          {expandedReason[signal.id] ? (
+                            <>
+                              Show less
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                              </svg>
+                            </>
+                          ) : (
+                            <>
+                              Show more
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </>
+                          )}
                         </button>
                       </div>
-                      <div className="mt-1 p-2 bg-gray-800/30 rounded-lg text-xs text-white whitespace-pre-wrap">
+                      <div className="p-3 bg-gradient-to-br from-gray-800/60 to-black/40 rounded-lg border border-gray-700/30 text-xs text-gray-300 leading-relaxed">
                         {expandedReason[signal.id]
                           ? signal.reason
                           : (signal.reason.length > 180 ? `${signal.reason.slice(0, 180)}…` : signal.reason)}
@@ -1034,17 +1205,30 @@ const Agent: React.FC = () => {
                     timestamp: signal.timestamp || new Date(),
                     closeReason: '',
                   } as unknown as SignalData)}
-                  className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-xs hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-purple-500/50 cursor-pointer"
+                  className="group/btn w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 text-white font-bold text-sm hover:from-purple-500 hover:via-purple-600 hover:to-purple-500 transition-all duration-300 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/50 cursor-pointer relative overflow-hidden"
                 >
-                  Open Position
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Open Position
+                    <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
                 </button>
               </div>
             ))}
 
             {!dailyLoading && !dailyError && dailySignals.length === 0 && (
-              <div className="text-center py-16">
-                <div className="text-gray-500 text-lg mb-2">No daily signals found</div>
-                <div className="text-gray-600 text-sm">Try again later</div>
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-20 h-20 mb-6 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                  <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="text-gray-300 text-xl font-semibold mb-2">No daily signals available</div>
+                <div className="text-gray-500 text-sm text-center max-w-md">
+                  Check back later for AI-powered trading recommendations
+                </div>
               </div>
             )}
           </div>

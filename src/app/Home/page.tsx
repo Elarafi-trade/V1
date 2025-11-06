@@ -74,8 +74,8 @@ const Home: React.FC = () => {
         <div className="absolute inset-0 w-full h-full">
           <Hyperspeed
             effectOptions={{
-              onSpeedUp: () => {},
-              onSlowDown: () => {},
+              onSpeedUp: () => { },
+              onSlowDown: () => { },
               distortion: "turbulentDistortion",
               length: 400,
               roadWidth: 10,
@@ -139,8 +139,17 @@ const Home: React.FC = () => {
               >
                 Start Trading
               </a>
-              <button className="px-6 py-3 rounded-full border border-purple-600/40 bg-purple-600/5 backdrop-blur-sm text-white font-semibold text-sm hover:bg-purple-600/10 hover:border-purple-600/60 transition-all shadow-lg hover:shadow-purple-500/50 cursor-pointer">
+              <button className="px-6 py-3 rounded-full border border-purple-600/40 bg-purple-600/5 backdrop-blur-sm text-white font-semibold text-sm hover:bg-purple-600/10 hover:border-purple-600/60 transition-all shadow-lg hover:shadow-purple-500/50 cursor-pointer"
+                onClick={() => {
+                  window.location.href = "https://elarafi.gitbook.io/elarafi-docs/";
+                }}>
                 Learn More
+              </button>
+              <button className="px-6 py-3 rounded-full border border-purple-600/40 bg-purple-600/5 backdrop-blur-sm text-white font-semibold text-sm hover:bg-purple-600/10 hover:border-purple-600/60 transition-all shadow-lg hover:shadow-purple-500/50 cursor-pointer"
+                onClick={() => {
+                  window.location.href = "https://t.me/Elara_pair_agent_bot";
+                }}>
+                Telegram Bot
               </button>
             </div>
           </div>
@@ -287,7 +296,7 @@ const Home: React.FC = () => {
             <h2 className="text-3xl sm:text-4xl md:text-4xl font-bold text-white text-center mb-8 sm:mb-12">
               Trading <span className="text-purple-400">Engines</span> & Integrations
             </h2>
-   <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto">
               <div
                 className="relative bg-black rounded-3xl p-4 sm:p-6 md:p-8 overflow-hidden border border-purple-800/50 min-h-[400px] sm:min-h-[350px] md:h-[450px]"
               >
@@ -343,7 +352,7 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Bottom Branding */}
-                  
+
                   <div className="absolute  bottom-4 sm:bottom-6 md:bottom-8 left-0 sm:left-6 md:left-0">
                     <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
                       <Image src="/drift.png" alt="Drift" width={28} height={28} className="rounded-lg w-6 h-6 sm:w-7 sm:h-7" />
@@ -380,7 +389,7 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
-     
+
           </div>
 
           {/* Drift Section */}
@@ -430,9 +439,9 @@ const Home: React.FC = () => {
                 {/* Right Side - Trading Alert Cards in Stacked Layout - Hidden on Mobile */}
                 <div className="relative w-full h-[450px] hidden lg:flex items-start justify-center pt-4">
                   {/* Card 1 - BTC/FLUX (Back) */}
-                  <div 
+                  <div
                     className="absolute h-[420px] bottom-0 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md border border-purple-600/30 rounded-2xl p-4 shadow-xl shadow-purple-900/20 w-[320px] transition-all duration-300 hover:-translate-y-4 cursor-pointer"
-                    style={{ 
+                    style={{
                       transform: 'translateX(-100px) scale(0.95)',
                       zIndex: 1
                     }}
@@ -510,9 +519,9 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Card 2 - LDO/SIREN (Middle) */}
-                  <div 
+                  <div
                     className="absolute bottom-0 h-[323px] bg-gradient-to-br from-gray-900/95 to-black/95 backdrop-blur-md border border-purple-600/40 rounded-2xl p-4 shadow-2xl shadow-purple-900/30 w-[320px] transition-all duration-300 hover:-translate-y-4 cursor-pointer"
-                    style={{ 
+                    style={{
                       transform: 'translateX(0px) scale(0.98)',
                       zIndex: 2
                     }}
@@ -576,9 +585,9 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Card 3 - USUAL/MOODENG (Front) */}
-                  <div 
+                  <div
                     className="absolute bottom-0 bg-gradient-to-br from-gray-900 to-black backdrop-blur-md border-2 border-purple-600/50 rounded-2xl p-4 shadow-2xl shadow-purple-900/40 w-[320px] transition-all duration-300 hover:-translate-y-4 cursor-pointer"
-                    style={{ 
+                    style={{
                       transform: 'translateX(100px) scale(1.0)',
                       zIndex: 3
                     }}
@@ -661,8 +670,8 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 11l3 3L22 4" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M9 11l3 3L22 4" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">TP / SL</h3>
@@ -677,8 +686,8 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12 8v8m-4-4h8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M12 8v8m-4-4h8" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">1 Click Open / Close</h3>
@@ -693,8 +702,8 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M18 17l-5-5-4 4-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M3 3v18h18" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M18 17l-5-5-4 4-6-6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Seamless Charting</h3>
@@ -709,7 +718,7 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Robust Security</h3>
@@ -724,7 +733,7 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 20V10M12 20V4M6 20v-6" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M18 20V10M12 20V4M6 20v-6" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Advanced Data and Analytics</h3>
@@ -739,9 +748,9 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+                        <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Active Trading Community</h3>
@@ -756,8 +765,8 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
-                        <polyline points="12 6 12 12 16 14" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="12 6 12 12 16 14" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">TWAP Entries</h3>
@@ -772,9 +781,9 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" strokeLinecap="round" strokeLinejoin="round"/>
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" strokeLinecap="round" strokeLinejoin="round"/>
-                        <line x1="12" y1="22.08" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" strokeLinecap="round" strokeLinejoin="round" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Professional Weighting Options</h3>
@@ -789,7 +798,7 @@ const Home: React.FC = () => {
                   <div className="flex items-start gap-3 mb-3">
                     <div className="text-purple-500 text-xl">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" strokeLinecap="round" strokeLinejoin="round"/>
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                     <h3 className="text-white font-bold text-base">Leverage and Flexibility</h3>
@@ -902,7 +911,7 @@ const Home: React.FC = () => {
               {
                 icon: (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
                   </svg>
                 ),
                 href: "https://t.me/Elara_pair_agent_bot",
@@ -911,7 +920,7 @@ const Home: React.FC = () => {
               {
                 icon: (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                   </svg>
                 ),
                 href: "https://www.youtube.com/channel/UCKXQEwHNiaaxerhZv990cMA",
