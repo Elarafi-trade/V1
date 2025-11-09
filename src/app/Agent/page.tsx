@@ -1017,14 +1017,23 @@ const Agent: React.FC = () => {
             {filteredSignals.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 px-4">
                 <div className="w-20 h-20 mb-6 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl flex items-center justify-center border border-purple-500/30">
-                  <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+
+                  <svg className="w-10 h-10 text-purple-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                    <path d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" className="opacity-75" />
                   </svg>
                 </div>
-                <div className="text-gray-300 text-xl font-semibold mb-2">No Active signals found</div>
+                <div className="text-gray-300 text-xl font-semibold mb-2">Scanning New Pairs For Signals</div>
                 <div className="text-gray-500 text-sm text-center max-w-md">
-                  Try After some time or adjusting your search or filters to find trading signals
+                  Please wait while we analyze the market for potential trading opportunities.
                 </div>
+                <div className="text-purple-500 text-sm font-bold text-center max-w-md mt-2">
+                  Try Top Tokens Daily Signals Tab
+                </div>
+                <button className="mt-4 px-4 py-2 rounded-lg bg-purple-600 text-white font-semibold"
+                  onClick={() => setActiveTab('top')}>
+                  Open
+                </button>
               </div>
 
             )}
