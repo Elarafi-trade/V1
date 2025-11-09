@@ -36,8 +36,8 @@ interface ApiTradeData {
 
 interface SignalData {
   id: string
-  token1: { symbol: string; icon: string; color: string }
-  token2: { symbol: string; icon: string; color: string }
+  token1: { symbol: string; icon: string; color: string; iconUrl?: string }
+  token2: { symbol: string; icon: string; color: string; iconUrl?: string }
   price: string
   entryPrice: string
   performance: string
@@ -93,24 +93,77 @@ interface PerformanceMetrics {
   lastUpdated: number
 }
 
-// Helper function to get token icon and color
-const getTokenStyle = (symbol: string): { icon: string; color: string } => {
-  const tokenMap: Record<string, { icon: string; color: string }> = {
-    BTC: { icon: "₿", color: "bg-orange-500" },
-    ETH: { icon: "Ξ", color: "bg-blue-600" },
-    SOL: { icon: "◎", color: "bg-purple-600" },
-    ARB: { icon: "🔷", color: "bg-blue-500" },
-    JUP: { icon: "🪐", color: "bg-purple-500" },
-    ORCA: { icon: "🐋", color: "bg-yellow-600" },
-    TIA: { icon: "🌟", color: "bg-purple-600" },
-    ICP: { icon: "∞", color: "bg-purple-500" },
-    AVAX: { icon: "🔺", color: "bg-red-500" },
+// Helper function to get token icon URL and color
+const getTokenStyle = (symbol: string): { icon: string; color: string; iconUrl?: string } => {
+  // Extract base symbol (remove -PERP suffix)
+  const baseSymbol = symbol.replace("-PERP", "").toUpperCase()
+
+  // Token contract addresses for logo fetching (Solana tokens)
+  const tokenAddresses: Record<string, string> = {
+    SOL: 'So11111111111111111111111111111111111111112',
+    RAY: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',
+    JUP: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',
+    ORCA: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',
+    TON: 'ton', // CoinGecko ID
   }
 
-  // Extract base symbol (remove -PERP suffix)
-  const baseSymbol = symbol.replace("-PERP", "")
+  // CoinGecko IDs and image numbers
+  const coinGeckoData: Record<string, { id: string; imageId: number }> = {
+    BTC: { id: 'bitcoin', imageId: 1 },
+    ETH: { id: 'ethereum', imageId: 279 },
+    ARB: { id: 'arbitrum', imageId: 16547 },
+    AVAX: { id: 'avalanche-2', imageId: 12559 },
+    TIA: { id: 'celestia', imageId: 31967 },
+    ICP: { id: 'internet-computer', imageId: 14495 },
+    TON: { id: 'the-open-network', imageId: 17980 },
+    SOL: { id: 'solana', imageId: 5426 },
+    RAY: { id: 'raydium', imageId: 11857 },
+    JUP: { id: 'jupiter', imageId: 15585 }
+  }
 
-  return tokenMap[baseSymbol] || { icon: "🪙", color: "bg-gray-500" }
+
+  const colorMap: Record<string, string> = {
+    BTC: "bg-orange-500",
+    ETH: "bg-blue-600",
+    SOL: "bg-purple-600",
+    TON: "bg-blue-500",
+    RAY: "bg-purple-500",
+    ARB: "bg-blue-500",
+    JUP: "bg-purple-500",
+    ORCA: "bg-yellow-600",
+    TIA: "bg-purple-600",
+    ICP: "bg-purple-500",
+    AVAX: "bg-red-500",
+  }
+
+  // Fallback emoji icons
+  const fallbackIcons: Record<string, string> = {
+    BTC: "₿",
+    ETH: "Ξ",
+    SOL: "◎",
+    TON: "💎",
+    RAY: "⚡",
+    ARB: "🔷",
+    JUP: "🪐",
+    ORCA: "🐋",
+    TIA: "🌟",
+    ICP: "∞",
+    AVAX: "🔺",
+  }
+
+  let iconUrl: string | undefined
+
+
+  //  if (coinGeckoData[baseSymbol]) {
+  //   const { id, imageId } = coinGeckoData[baseSymbol]
+  //   iconUrl = `https://assets.coingecko.com/coins/images/${imageId}/thumb/${id}.png`
+  // }
+
+  return {
+    icon: fallbackIcons[baseSymbol] || "🪙",
+    color: colorMap[baseSymbol] || "bg-gray-500",
+    iconUrl
+  }
 }
 
 // Helper function to calculate time ago
@@ -122,8 +175,8 @@ const getTimeAgo = (timestamp: string): string => {
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diffMins < 60) return `${diffMins} minutes ago`
-  if (diffHours < 24) return `${diffHours} hours ago`
+  if (diffMins < 60) return `${diffMins} mins ago`
+  if (diffHours < 24) return `${diffHours} hrs ago`
   return `${diffDays} days ago`
 }
 
@@ -153,8 +206,8 @@ const toValidDate = (value: unknown): Date | null => {
 interface DailySignal {
   cached_at: any
   id: string
-  token1: { symbol: string; icon: string; color: string }
-  token2: { symbol: string; icon: string; color: string }
+  token1: { symbol: string; icon: string; color: string; iconUrl?: string }
+  token2: { symbol: string; icon: string; color: string; iconUrl?: string }
   zScore?: string
   correlation?: string
   cointegration?: string
@@ -301,18 +354,33 @@ const Agent: React.FC = () => {
 
         // Transform API data to SignalData format
         const transformedSignals: SignalData[] = data.map((trade) => {
-          const [longSymbol, shortSymbol] = trade.pair.split("/")
-          // Remove -PERP suffix
-          const cleanLongSymbol = longSymbol.replace("-PERP", "")
-          const cleanShortSymbol = shortSymbol.replace("-PERP", "")
+          // Parse signal to determine correct token order
+          // Signal format: "LONG TOKEN1, SHORT TOKEN2" or "LONG TOKEN1-PERP, SHORT TOKEN2-PERP"
+          const signal = trade.signal || (trade as any).action || ''
+          let token1Symbol = ''
+          let token2Symbol = ''
 
-          const longStyle = getTokenStyle(longSymbol)
-          const shortStyle = getTokenStyle(shortSymbol)
+          const longMatch = signal.match(/LONG\s+([A-Z0-9\-]+)/i)
+          const shortMatch = signal.match(/SHORT\s+([A-Z0-9\-]+)/i)
+
+          if (longMatch && shortMatch) {
+            // Use signal to determine order: LONG token goes to token1, SHORT token goes to token2
+            token1Symbol = longMatch[1].replace(/-PERP$/i, '')
+            token2Symbol = shortMatch[1].replace(/-PERP$/i, '')
+          } else {
+            // Fallback to pair format
+            const [longSymbol, shortSymbol] = trade.pair.split("/")
+            token1Symbol = longSymbol.replace("-PERP", "")
+            token2Symbol = shortSymbol.replace("-PERP", "")
+          }
+
+          const longStyle = getTokenStyle(token1Symbol)
+          const shortStyle = getTokenStyle(token2Symbol)
 
           return {
             id: trade.id.toString(),
-            token1: { symbol: cleanLongSymbol, ...longStyle },
-            token2: { symbol: cleanShortSymbol, ...shortStyle },
+            token1: { symbol: token1Symbol, ...longStyle },
+            token2: { symbol: token2Symbol, ...shortStyle },
             price: `$${parseFloat(trade.longPrice).toFixed(4)}`,
             entryPrice: `$${parseFloat(trade.shortPrice).toFixed(4)}`,
             performance: `${parseFloat(trade.upnlPct).toFixed(4)}%`,
@@ -684,7 +752,7 @@ const Agent: React.FC = () => {
                 }`}
             >
               <span className="hidden sm:inline">Top Tokens Daily Signals</span>
-              <span className="sm:hidden">Top</span>
+              <span className="sm:hidden">Top Tokens Daily</span>
               {activeTab === "top" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-400 to-purple-600" />
               )}
@@ -795,23 +863,45 @@ const Agent: React.FC = () => {
               >
                 {/* Header */}
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-row justify-between items-center w-full">
+                  <div className="flex flex-row justify-between items-center w-full gap-2">
                     {/* Token badges */}
                     <div className="flex flex-row items-center flex-shrink-0 shadow-md">
                       <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-green-500/30 to-green-600/20 rounded-l-xl border border-green-500/30 hover:from-green-500/40 hover:to-green-600/30 transition-all">
                         <div
-                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg overflow-hidden`}
                         >
-                          {signal.token1.icon}
+                          {signal.token1.iconUrl ? (
+                            <Image
+                              src={signal.token1.iconUrl}
+                              alt={signal.token1.symbol}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            signal.token1.icon
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token1.symbol}</p>
                       </div>
                       <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-600 to-transparent"></div>
                       <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-red-600/20 to-red-500/30 rounded-r-xl border border-red-500/30 hover:from-red-600/30 hover:to-red-500/40 transition-all">
                         <div
-                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg overflow-hidden`}
                         >
-                          {signal.token2.icon}
+                          {signal.token2.iconUrl ? (
+                            <Image
+                              src={signal.token2.iconUrl}
+                              alt={signal.token2.symbol}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            signal.token2.icon
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token2.symbol}</p>
                       </div>
@@ -936,7 +1026,7 @@ const Agent: React.FC = () => {
                   Try After some time or adjusting your search or filters to find trading signals
                 </div>
               </div>
-              
+
             )}
           </div>
         )}
@@ -996,18 +1086,44 @@ const Agent: React.FC = () => {
               >
                 {/* Header */}
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-row justify-between items-center w-full">
+                  <div className="flex flex-row justify-between items-center w-full gap-2">
                     <div className="flex flex-row items-center flex-shrink-0 shadow-md">
                       <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-green-500/30 to-green-600/20 rounded-l-xl border border-green-500/30 hover:from-green-500/40 hover:to-green-600/30 transition-all">
-                        <div className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}>
-                          {signal.token1.icon}
+                        <div
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token1.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg overflow-hidden`}
+                        >
+                          {signal.token1.iconUrl ? (
+                            <Image
+                              src={signal.token1.iconUrl}
+                              alt={signal.token1.symbol}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            signal.token1.icon
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token1.symbol}</p>
                       </div>
                       <div className="w-px h-8 bg-gradient-to-b from-transparent via-gray-600 to-transparent"></div>
                       <div className="flex flex-row items-center gap-2 sm:gap-3 justify-center px-3 sm:px-5 py-2.5 bg-gradient-to-r from-red-600/20 to-red-500/30 rounded-r-xl border border-red-500/30 hover:from-red-600/30 hover:to-red-500/40 transition-all">
-                        <div className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg`}>
-                          {signal.token2.icon}
+                        <div
+                          className={`w-5 h-5 sm:w-6 sm:h-6 ${signal.token2.color} rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base shadow-lg overflow-hidden`}
+                        >
+                          {signal.token2.iconUrl ? (
+                            <Image
+                              src={signal.token2.iconUrl}
+                              alt={signal.token2.symbol}
+                              width={24}
+                              height={24}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            signal.token2.icon
+                          )}
                         </div>
                         <p className="text-xs sm:text-sm font-bold text-white tracking-wide">{signal.token2.symbol}</p>
                       </div>
@@ -1107,25 +1223,27 @@ const Agent: React.FC = () => {
                   </div>
 
                   {/* Co-integration Status */}
-                  <div className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-gray-700/30">
-                    <span className="text-xs font-medium text-gray-400 uppercase">Co-integration</span>
-                    <span className={`text-xs font-bold flex items-center gap-2 ${signal.cointegration === 'Yes' ? 'text-green-400' : signal.cointegration === 'No' ? 'text-red-400' : 'text-white'}`}>
-                      {signal.cointegration === 'Yes' && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                      {signal.cointegration === 'No' && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      )}
-                      <span>
-                        {signal.cointegration ?? 'Unknown'}
-                        {signal.cointegrationPValue && ` (p=${parseFloat(signal.cointegrationPValue).toFixed(2)})`}
+                  {signal.cointegration != null && (
+                    <div className="flex items-center justify-between p-3 bg-black/30 rounded-lg border border-gray-700/30">
+                      <span className="text-xs font-medium text-gray-400 uppercase">Co-integration</span>
+                      <span className={`text-xs font-bold flex items-center gap-2 ${signal.cointegration === 'Yes' ? 'text-green-400' : signal.cointegration === 'No' ? 'text-red-400' : 'text-white'}`}>
+                        {signal.cointegration === 'Yes' && (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        {signal.cointegration === 'No' && (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                        <span>
+                          {signal.cointegration ?? 'Unknown'}
+                          {signal.cointegrationPValue && ` (p=${parseFloat(signal.cointegrationPValue).toFixed(2)})`}
+                        </span>
                       </span>
-                    </span>
-                  </div>
+                    </div>
+                  )}
 
                   {/* Entry Recommendation */}
                   {signal.entryRecommendation && (
