@@ -422,15 +422,15 @@ const Home: React.FC = () => {
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-4 sm:gap-8 pt-4 mt-4">
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white mb-0.5">68.96%</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-green-500 mb-0.5">68%+</div>
                       <div className="text-[10px] sm:text-xs text-gray-500">Win Rate</div>
                     </div>
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white mb-0.5">1,635</div>
+                      <div className="text-2xl sm:text-3xl text-green-500 font-bold mb-0.5">50+</div>
                       <div className="text-[10px] sm:text-xs text-gray-500">Total Wins</div>
                     </div>
                     <div>
-                      <div className="text-2xl sm:text-3xl font-bold text-white mb-0.5">2,371</div>
+                      <div className="text-2xl sm:text-3xl font-bold mb-0.5">70+</div>
                       <div className="text-[10px] sm:text-xs text-gray-500">Total Trades</div>
                     </div>
                   </div>
