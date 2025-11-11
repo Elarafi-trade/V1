@@ -8,6 +8,11 @@ interface AgentAnalysis {
   spreadStd: number;
   currentSpread: number;
   signalType: string;
+  volatility?: number;
+  halfLife?: number;
+  cointegrationPValue?: number;
+  isCointegrated?: boolean;
+  sharpe?: number;
 }
 
 interface AgentSignal {

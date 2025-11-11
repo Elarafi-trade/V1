@@ -349,7 +349,7 @@ function Trade() {
   useEffect(() => {
     if (longToken && shortToken) {
       // Convert to PERP format (e.g., SOL-PERP, ETH-PERP)
-      fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 100);
+      fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 200);
     }
   }, [longToken, shortToken, fetchAnalysis]);
 
@@ -770,7 +770,7 @@ function Trade() {
                           <div className="text-red-400 text-[11px] mb-2">{agentError}</div>
                           <button
                             type="button"
-                            onClick={() => fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 100)}
+                            onClick={() => fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 200)}
                             className="text-xs text-purple-400 hover:text-purple-300 underline"
                           >
                             Retry
@@ -781,64 +781,144 @@ function Trade() {
                       {/* Success State - Show Data */}
                       {!agentLoading && !agentError && analysis && (
                         <>
-                          {/* Signal */}
-                          <div className="flex items-center justify-between py-1 mb-2">
-                            <span className="text-foreground/70">Signal</span>
-                            <span className={`font-semibold ${
-                              analysis.signal.action === 'LONG' ? 'text-green-400' :
-                              analysis.signal.action === 'SHORT' ? 'text-red-400' :
-                              'text-purple-300'
+                          {/* Signal with Badge */}
+                          <div className="flex items-center justify-between py-1.5 mb-3 border-b border-purple-500/20">
+                            <span className="text-foreground/70 font-medium">Signal</span>
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                              analysis.signal.action === 'LONG' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                              analysis.signal.action === 'SHORT' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                              'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                             }`}>
                               {analysis.signal.action}
                             </span>
                           </div>
 
-                          {/* Correlation */}
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-foreground/70">Correlation</span>
-                            <span className="text-purple-300">{analysis.analysis.correlation.toFixed(3)}</span>
+                          {/* Key Metrics Grid */}
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            {/* Correlation */}
+                            <div className="flex flex-col gap-1 p-2 rounded-lg bg-black/40">
+                              <span className="text-foreground/60 text-[10px]">Correlation</span>
+                              <span className={`font-semibold text-sm ${
+                                analysis.analysis.correlation >= 0.8 ? 'text-green-400' :
+                                analysis.analysis.correlation >= 0.5 ? 'text-yellow-400' :
+                                'text-orange-400'
+                              }`}>
+                                {analysis.analysis.correlation.toFixed(3)}
+                              </span>
+                            </div>
+
+                            {/* Z-Score */}
+                            <div className="flex flex-col gap-1 p-2 rounded-lg bg-black/40">
+                              <span className="text-foreground/60 text-[10px]">Z-Score</span>
+                              <span className={`font-semibold text-sm ${
+                                Math.abs(analysis.analysis.zScore) > 2 ? 'text-yellow-400' :
+                                Math.abs(analysis.analysis.zScore) > 1.5 ? 'text-orange-400' :
+                                'text-purple-300'
+                              }`}>
+                                {analysis.analysis.zScore.toFixed(2)}σ
+                              </span>
+                            </div>
+
+                            {/* Beta */}
+                            <div className="flex flex-col gap-1 p-2 rounded-lg bg-black/40">
+                              <span className="text-foreground/60 text-[10px]">Beta</span>
+                              <span className="text-purple-300 font-semibold text-sm">
+                                {analysis.analysis.beta.toFixed(3)}
+                              </span>
+                            </div>
+
+                            {/* Volatility */}
+                            <div className="flex flex-col gap-1 p-2 rounded-lg bg-black/40">
+                              <span className="text-foreground/60 text-[10px]">Volatility</span>
+                              <span className="text-purple-300 font-semibold text-sm">
+                                {analysis.analysis.volatility?.toFixed(2) || 'N/A'}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Z-Score */}
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-foreground/70">Z-Score</span>
-                            <span className={`font-medium ${
-                              Math.abs(analysis.analysis.zScore) > 2 ? 'text-yellow-400' :
-                              Math.abs(analysis.analysis.zScore) > 1.5 ? 'text-orange-400' :
-                              'text-purple-300'
-                            }`}>
-                              {analysis.analysis.zScore.toFixed(2)}σ
-                            </span>
-                          </div>
+                          {/* Advanced Metrics */}
+                          <div className="space-y-1.5 mb-3">
+                            {/* Spread Details */}
+                            <div className="flex items-center justify-between py-1">
+                              <span className="text-foreground/70 text-[11px]">Current Spread</span>
+                              <span className="text-purple-300 text-[11px] font-medium">
+                                {analysis.analysis.currentSpread.toFixed(2)}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between py-1">
+                              <span className="text-foreground/70 text-[11px]">Spread Mean ± Std</span>
+                              <span className="text-purple-300 text-[11px] font-medium">
+                                {analysis.analysis.spreadMean.toFixed(2)} ± {analysis.analysis.spreadStd.toFixed(2)}
+                              </span>
+                            </div>
 
-                          {/* Beta */}
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-foreground/70">Beta</span>
-                            <span className="text-purple-300">{analysis.analysis.beta.toFixed(3)}</span>
-                          </div>
+                            {/* Half Life */}
+                            {/* {analysis.analysis.halfLife && (
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-foreground/70 text-[11px]">Half-Life</span>
+                                <span className="text-purple-300 text-[11px] font-medium">
+                                  {analysis.analysis.halfLife.toFixed(1)} bars
+                                </span>
+                              </div>
+                            )} */}
 
-                          {/* Spread */}
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-foreground/70">Spread</span>
-                            <span className="text-purple-300 text-[10px]">
-                              {analysis.analysis.currentSpread.toFixed(2)}
-                            </span>
+                            {/* Sharpe Ratio */}
+                            {/* {analysis.analysis.sharpe !== undefined && (
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-foreground/70 text-[11px]">Sharpe Ratio</span>
+                                <span className={`text-[11px] font-medium ${
+                                  analysis.analysis.sharpe > 1 ? 'text-green-400' :
+                                  analysis.analysis.sharpe > 0 ? 'text-yellow-400' :
+                                  'text-red-400'
+                                }`}>
+                                  {analysis.analysis.sharpe.toFixed(2)}
+                                </span>
+                              </div>
+                            )} */}
+
+                            {/* Cointegration Status */}
+                            {analysis.analysis.isCointegrated !== undefined && (
+                              <div className="flex items-center justify-between py-1">
+                                <span className="text-foreground/70 text-[11px]">Cointegrated</span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                                  analysis.analysis.isCointegrated 
+                                    ? 'bg-green-500/20 text-green-400' 
+                                    : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {analysis.analysis.isCointegrated ? 'Yes' : 'No'}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Narrative */}
-                          <div className="flex items-center justify-between py-1">
-                            <span className="text-foreground/70">Narrative</span>
+                          <div className="mb-3">
+                            <div className="flex items-center gap-1 mb-1.5">
+                              <span className="text-foreground/70 text-[11px]">Narrative</span>
+                              {analysis.signal.meetsThreshold && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                  ✓ Threshold Met
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-2.5 bg-purple-800/20 rounded-lg text-purple-300 text-[10px] leading-relaxed max-h-20 overflow-y-auto border border-purple-500/10">
+                              {analysis.narrative}
+                            </div>
                           </div>
-                          <div className="mt-1 p-2 bg-purple-800/20 rounded-lg text-purple-300 text-[10px] h-16 overflow-y-auto">
-                            {analysis.narrative}
-                          </div>
+
+                          {/* Data Points & Timestamp */}
+                          {/* <div className="flex items-center justify-between text-[9px] text-foreground/50 mb-2 pb-2 border-b border-purple-500/10">
+                            <span>Data Points: {analysis.dataPoints}</span>
+                            <span>{new Date(analysis.timestamp).toLocaleTimeString()}</span>
+                          </div> */}
 
                           {/* Refresh button */}
                           <button
                             type="button"
-                            onClick={() => fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 100)}
+                            onClick={() => fetchAnalysis(`${longToken}-PERP`, `${shortToken}-PERP`, 200)}
                             disabled={agentLoading}
-                            className="mt-3 w-full py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 text-xs font-medium transition-colors disabled:opacity-50"
+                            className="w-full py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 text-xs font-medium transition-colors disabled:opacity-50 border border-purple-500/30"
                           >
                             Refresh Analysis
                           </button>
