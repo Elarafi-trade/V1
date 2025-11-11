@@ -32,7 +32,7 @@ export function useAgentAnalysis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAnalysis = useCallback(async (symbolA: string, symbolB: string, limit = 100) => {
+  const fetchAnalysis = useCallback(async (symbolA: string, symbolB: string, limit = 200) => {
     setLoading(true);
     setError(null);
 
