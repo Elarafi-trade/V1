@@ -562,7 +562,7 @@ const Agent: React.FC = () => {
 
         const results = await Promise.allSettled(
           pairs.map(async ({ symbolA, symbolB }) => {
-            const res = await fetch('https://pair-agentverse.onrender.com/api/analyze', {
+            const res = await fetch('https://pair-agentverse-e9wm.onrender.com/api/analyze', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ symbolA, symbolB, limit: 200 }),
