@@ -344,7 +344,7 @@ const Agent: React.FC = () => {
       try {
         setLoading(true)
         setError(null)
-        const response = await fetch("https://pair-agent.onrender.com/api/trades")
+        const response = await fetch("https://pair-agent-a2ol.onrender.com/api/trades")
 
         if (!response.ok) {
           throw new Error("Failed to fetch signals")
@@ -413,7 +413,7 @@ const Agent: React.FC = () => {
 
     const fetchPerformanceMetrics = async () => {
       try {
-        const response = await fetch("https://pair-agent.onrender.com/api/performance")
+        const response = await fetch("https://pair-agent-a2ol.onrender.com/api/performance")
 
         console.log("API Response Status:", response.status)
 
@@ -1025,7 +1025,7 @@ const Agent: React.FC = () => {
                 </div>
                 <div className="text-gray-300 text-xl font-semibold mb-2">Scanning New Pairs For Signals</div>
                 <div className="text-gray-500 text-sm text-center max-w-md">
-                  Please wait while we analyze the market for potential trading opportunities.
+                  Please wait while ELARA Agent analyze the market for potential trading opportunities.
                 </div>
                 <div className="text-purple-500 text-sm font-bold text-center max-w-md mt-2">
                   Try Top Tokens Daily Signals Tab

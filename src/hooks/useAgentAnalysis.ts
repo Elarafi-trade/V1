@@ -48,7 +48,7 @@ export function useAgentAnalysis() {
 
       console.log(`🤖 Fetching analysis for ${symbolA} / ${symbolB}...`);
       
-      const response = await fetch('https://pair-agent.onrender.com/api/analyze', {
+      const response = await fetch('https://pair-agent-a2ol.onrender.com/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
